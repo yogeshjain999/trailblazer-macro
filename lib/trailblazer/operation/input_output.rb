@@ -7,11 +7,8 @@ module Trailblazer
   module Operation::InputOutput
   # naming: Macaroni, VariableMapping
     def self.plan(input, output)
-      default_input_filter  = ->(options, *) { ctx = options }
-      default_output_filter = ->(options, *) { options }
-
-      input  ||= default_input_filter
-      output ||= default_output_filter
+      input  ||= ->(options, *) { options }
+      output ||= ->(options, *) { options }
 
       input_filter  = Activity::TaskWrap::Input.new(input)
       output_filter = Activity::TaskWrap::Output.new(output)

@@ -33,7 +33,7 @@ class Trailblazer::Operation
 
       return handler if arity != 2 # means (exception, (ctx, flow_options), *, &block), "new style"
 
-      ->(exception, (ctx, flow_options), **circuit_options, &block) do
+      ->(exception, (ctx, _flow_options), **circuit_options, &block) do
         warn "[Trailblazer] Rescue handlers have a new signature: (exception, *, &block)"
         handler.(exception, ctx, &block)
       end
