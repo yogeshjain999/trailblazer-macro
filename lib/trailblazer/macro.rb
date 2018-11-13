@@ -8,13 +8,14 @@ require "trailblazer/macro/pundit"
 require "trailblazer/macro/nested"
 require "trailblazer/macro/rescue"
 require "trailblazer/macro/wrap"
+require "trailblazer/macro/switch"
 
 module Trailblazer
   module Macro
     # All macros sit in the {Trailblazer::Macro} namespace, where we forward calls from
     # operations and activities to.
     def self.forward_macros(target)
-      target.singleton_class.def_delegators Trailblazer::Macro, :Model, :Wrap, :Rescue, :Nested
+      target.singleton_class.def_delegators Trailblazer::Macro, :Model, :Wrap, :Rescue, :Nested, :Switch
       target.const_set(:Policy, Trailblazer::Macro::Policy)
     end
   end
