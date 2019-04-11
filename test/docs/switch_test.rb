@@ -13,10 +13,12 @@ module DocsSwitchTest
 
   class NoCustomSignals < MiniTest::Spec
     class ChargeSwitch < Trailblazer::Operation
+      class Braintree < Trailblazer::Activity::Signal; end
+
       step :set_model
       step Switch(condition: :set_condition) {
         option "stripe",    Trailblazer::Operation::Subprocess(ChargeStripe)
-        option "braintree", :braintree
+        option "braintree", :braintree, Output(Braintree, :success) => Track(:braintree)
         option /./,         :unsupported
       }
       step :invoice
@@ -59,40 +61,40 @@ module DocsSwitchTest
       result[:invoice].charge_id.must_equal 1
     end
 
-    # it "when integration is stripe but save is failing" do
-    #   result = ChargeSwitch.trace(integration: "stripe", save: false)
-    #   pp result.wtf?
+    it "when integration is stripe but save is failing" do
+      result = ChargeSwitch.trace(integration: "stripe", save: false)
+      pp result.wtf?
 
-    #   result.failure?.must_equal true
-    #   result[:model].charge_id.must_equal 1
-    #   result[:error].must_equal "Something wrong happened"
-    # end
+      result.failure?.must_equal true
+      result[:model].charge_id.must_equal 1
+      result[:error].must_equal "Something wrong happened"
+    end
 
-    # it "when integration is braintree" do
-    #   result = ChargeSwitch.trace(integration: "braintree")
-    #   pp result.wtf?
+    it "when integration is braintree" do
+      result = ChargeSwitch.trace(integration: "braintree")
+      pp result.wtf?
 
-    #   result.success?.must_equal true
-    #   result[:model].charge_id.must_equal 2
-    #   result[:invoice].type.must_equal "braintree"
-    #   result[:invoice].charge_id.must_equal 2
-    # end
+      result.success?.must_equal true
+      result[:model].charge_id.must_equal 2
+      result[:invoice].type.must_equal "braintree"
+      result[:invoice].charge_id.must_equal 2
+    end
 
-    # it "when integration is braintree but save is failing" do
-    #   result = ChargeSwitch.trace(integration: "braintree", save: false)
-    #   pp result.wtf?
+    it "when integration is braintree but save is failing" do
+      result = ChargeSwitch.trace(integration: "braintree", save: false)
+      pp result.wtf?
 
-    #   result.failure?.must_equal true
-    #   result[:model].charge_id.must_equal 2
-    #   result[:error].must_equal "Something wrong happened"
-    # end
+      result.failure?.must_equal true
+      result[:model].charge_id.must_equal 2
+      result[:error].must_equal "Something wrong happened"
+    end
 
-    # it "when integration is not supported" do
-    #   result = ChargeSwitch.trace(integration: "smoko")
-    #   pp result.wtf?
+    it "when integration is not supported" do
+      result = ChargeSwitch.trace(integration: "smoko")
+      pp result.wtf?
 
-    #   result[:error].must_equal "Unsupported bill integration"
-    # end
+      result[:error].must_equal "Unsupported bill integration"
+    end
   end
 
   # class WithCustomSignals < MiniTest::Spec

@@ -3,33 +3,35 @@ module Trailblazer
     def self.Switch(condition:, key: :condition, id: "Switch(#{rand(100)})", &block)
       switch = Switch::Switched.new(key, block)
 
-      condition_task = ->((ctx, flow_options), **circuit_options) {
-        Switch::Condition.(ctx, circuit_options, condition: condition)
+      extract_condition = ->((ctx, flow_options), **circuit_options) {
+        Switch::Extract.(ctx, circuit_options, condition: condition)
 
         return Trailblazer::Activity::Right, [ctx, flow_options]
       }
 
-      switch_block = Class.new(Activity::Railway(name: "Switch")) do
+      switch_block = Class.new(Activity::FastTrack(name: "Switch")) do
         # pass because we cover the case we want to have a false/nil option
-        pass task: condition_task, id: "extract_condition"
+        pass task: extract_condition, id: "extract_condition"
         # TODO: the id here it's wrong...I want to get the id from the actual switch option
-        step task: switch, id: "switch_step"
+        step task: switch, id: "call_condition"
       end
 
-      {task: switch_block, id: id, outputs: switch.outputs}
+      options = switch_block.Subprocess(switch_block)
+      options = options.merge(id: id)
+      options
     end
 
     module Switch
       class OptionNotFound < RuntimeError; end
 
-      class Condition
+      class Extract
         def self.call(ctx, circuit_options, condition:)
           Trailblazer::Option(condition).(ctx, ctx.to_hash, circuit_options)
         end
       end
 
       class Option
-        include Trailblazer::Activity::DSL # to use Output, End and Track
+        include Trailblazer::Activity::DSL::Linear # to use Output, End and Track
 
         def initialize(condition)
           @condition = condition
@@ -75,19 +77,17 @@ module Trailblazer
         def call((ctx, flow_options), **circuit_options)
           extract_step_and_option_signal(ctx[@key])
 
-          original_signal, (ctx,) = @step[:task].([ctx, flow_options], **circuit_options)
-
-          signal = @signal_to_output.fetch(original_signal, original_signal)
-
-          return signal, [ctx, flow_options]
+          # this works when step is a Subprocess, when instead is just a callable the signal is
+          # something that will raise an IlligalSignal
+          @step[:task].([ctx, flow_options], **circuit_options)
         end
 
         def extract_step_and_option_signal(condition)
           options = Option.new(condition)
           options.instance_exec(&@block)
-          @step, @option_signal = options.results
+          @step, @option_signal = options.results # we are not doing anywthing with @option_signal
 
-          fail Switch::OptionNotFound if @step.nil?
+          fail Switch::OptionNotFound unless @step
 
           @step = {task: Trailblazer::Activity::TaskBuilder::Binary(@step)} if @step.is_a?(Symbol)
         end
