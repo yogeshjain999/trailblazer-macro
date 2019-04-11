@@ -12,3 +12,4 @@ gem "trailblazer-operation", github: "trailblazer/trailblazer-operation", branch
 
 gem "minitest-line"
 gem "rubocop", require: false
+gem 'pry'

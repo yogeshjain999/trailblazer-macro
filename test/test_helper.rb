@@ -2,7 +2,7 @@ require "delegate" # Ruby 2.2
 require "minitest/autorun"
 
 require "trailblazer/macro"
-
+require "pry"
 
 module Mock
   class Result
