@@ -75,6 +75,7 @@ When raise:   return {Railway.fail!}, but wire Wrap() to {fail_fast: true}
     class Memo::Create < Trailblazer::Operation
       class HandleUnsafeProcess
         def self.call((ctx), *, &block)
+          ctx[:wrapper_backup] = ctx[:wrapper]
           yield # calls the wrapped steps
         rescue
           [ Trailblazer::Operation::Railway.fail!, [ctx, {}] ]
@@ -85,7 +86,7 @@ When raise:   return {Railway.fail!}, but wire Wrap() to {fail_fast: true}
       step Wrap( HandleUnsafeProcess ) {
         step :update
         step :rehash
-      }, fail_fast: true
+      }, fail_fast: true, input: ->(original_ctx, **) { original_ctx.merge(wrapper: "Rebalance") }
       step :notify
       fail :log_error
 
@@ -94,6 +95,9 @@ When raise:   return {Railway.fail!}, but wire Wrap() to {fail_fast: true}
       include Rehash
       #~methods end
     end
+
+    it { Memo::Create.( { seq: [] })[:wrapper].must_be_nil }
+    it { Memo::Create.( { seq: [] })[:wrapper_backup].must_equal "Rebalance" }
 
     it { Memo::Create.( { seq: [] } ).inspect(:seq).must_equal %{<Result:true [[:find_model, :update, :rehash, :notify]] >} }
     it { Memo::Create.( { seq: [], rehash_raise: true } ).inspect(:seq).must_equal %{<Result:false [[:find_model, :update, :rehash]] >} }
